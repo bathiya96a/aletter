@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Just a Letter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rose-gold: #e5b3b3;
+            --deep-rose: #c27d7d;
+            --champagne: #fdf5e6;
+            --text-color: #4a4a4a;
+            --accent: #d4af37; /* Gold accent */
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: radial-gradient(circle, #fff5f5 0%, #f7e7ce 100%);
+            margin: 0;
+            perspective: 1500px;
+            font-family: 'Playfair Display', serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* --- ENVELOPE STRUCTURE --- */
+        .envelope-card {
+            position: relative;
+            width: 320px;
+            height: 220px;
+            transform-style: preserve-3d;
+            transform: rotateY(180deg);
+            transition: transform 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.15);
+            cursor: pointer;
+        }
+
+        .envelope-card.flipped { transform: rotateY(0deg); }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        /* --- THE BACK (Addresses) --- */
+        .face.back {
+            background-color: var(--rose-gold);
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .address-sender {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: white;
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+            width: fit-content;
+        }
+
+        .address-receiver {
+            margin-top: 50px;
+            align-self: center;
+            text-align: center;
+            font-family: 'Dancing Script', cursive;
+            font-size: 22px;
+            color: white;
+            line-height: 1.2;
+        }
+
+        .stamp {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 45px;
+            height: 55px;
+            background: #fff;
+            border: 2px dashed var(--deep-rose);
+            border-radius: 3px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+
+        /* --- THE FRONT --- */
+        .face.front { background-color: var(--deep-rose); z-index: 2; }
+
+        .flap {
+            position: absolute;
+            top: 0;
+            width: 0;
+            height: 0;
+            border-left: 160px solid transparent;
+            border-right: 160px solid transparent;
+            border-top: 110px solid var(--rose-gold);
+            transform-origin: top;
+            transition: transform 0.5s ease-in-out 0.8s;
+            z-index: 3;
+        }
+
+        .envelope-card.open .flap { transform: rotateX(180deg); z-index: 0; }
+
+        .envelope-front-base {
+            position: absolute;
+            bottom: 0;
+            width: 0;
+            height: 0;
+            border-left: 160px solid var(--rose-gold);
+            border-right: 160px solid var(--rose-gold);
+            border-bottom: 110px solid var(--deep-rose);
+            z-index: 2;
+        }
+
+        /* --- SMALL PREVIEW LETTER --- */
+        .letter-preview {
+            position: absolute;
+            bottom: 10px;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            background: white;
+            z-index: 1;
+            transition: transform 0.6s ease-in-out 1.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+        }
+
+        .envelope-card.open .letter-preview { transform: translateY(-110px) rotate(-2deg); }
+
+        .preview-content {
+            font-family: 'Dancing Script', cursive;
+            color: var(--deep-rose);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        /* --- THE MAGICAL FULL LETTER (Modal) --- */
+        .full-letter-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 245, 245, 0.95);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.6s ease;
+        }
+
+        .full-letter-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .full-letter-content {
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            padding: 40px;
+            border-radius: 2px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            border: 1px solid var(--rose-gold);
+        }
+
+        .full-letter-overlay.active .full-letter-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .message-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 32px;
+            color: var(--deep-rose);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .message-body {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        .close-btn {
+            margin-top: 30px;
+            background: var(--deep-rose);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-family: 'Playfair Display', serif;
+            cursor: pointer;
+            border-radius: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Sparkle & Heart Particles */
+.particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 101; /* Above the letter */
+    border-radius: 50%;
+    animation: fly 2s ease-out forwards;
+}
+
+@keyframes fly {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        /* Scatter in random directions */
+        transform: translate(var(--dx), var(--dy)) scale(0);
+        opacity: 0;
+    }
+}
+
+        /* Mobile Responsive adjustments */
+        @media (max-width: 480px) {
+            .envelope-card { width: 280px; height: 180px; }
+            .flap, .envelope-front-base { border-left-width: 140px; border-right-width: 140px; }
+            .full-letter-content { padding: 25px; width: 85%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="envelope-card" id="envelope">
+        <div class="face back">
+            <div class="address-sender"> From : Bathiya<br> Planel Earth</div>
+            <div class="stamp">🌸 <p style="font-size: 7px;">මුද්දරය</p></div>
+            <div class="address-receiver">
+                To : Thilini Lakshani,<br>
+                (Our Loyal Sister & Friend)
+            </div>
+        </div>
+
+        <div class="face front">
+            <div class="flap"></div>
+            <div class="letter-preview" id="letterPreview">
+                <div class="preview-content">
+                    <p style="margin:0">Open Me</p>
+                    <small>✨</small>
+                </div>
+            </div>
+            <div class="envelope-front-base"></div>
+        </div>
+    </div>
+
+    <div class="full-letter-overlay" id="fullLetter">
+        <div class="full-letter-content">
+            <h1 class="message-title">Happy Birthday! 🎂</h1>
+            <div class="message-body">
+                <p>To You... my wonderful colleague & our amazing CHRM 😁 star, </p>
+                <p>You have a beautiful soul that brightens every heart.💖 Thank you for being so friendly, lovingly supportive. </p>
+               <p><strong>May your day be as wonderful and kind as you are!</strong>❤️</p>
+<p>May it be filled with laughter, love, and all the beautiful moments in between.🍰 </p> 
+<p><em>Wishing you a very Happy Birthday and a successful future ahead! 🎉</em></p>
+            </div>
+            <button class="close-btn" id="closeLetter">Close with Love</button>
+        </div>
+    </div>
+
+    <script>
+        const envelope = document.getElementById('envelope');
+        const letterPreview = document.getElementById('letterPreview');
+        const fullLetter = document.getElementById('fullLetter');
+        const closeLetter = document.getElementById('closeLetter');
+
+        // 1. Flip and Open Envelope
+        envelope.addEventListener('click', (e) => {
+            e.stopPropagation();
+            envelope.classList.add('flipped');
+            // Adding a small delay for the flap to start after the flip
+            setTimeout(() => {
+                envelope.classList.add('open');
+            }, 100);
+        });
+
+        // 2. Click the tiny letter to reveal the FULL message (Magical Expansion)
+        letterPreview.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fullLetter.classList.add('active');
+            createSparkles();
+        });
+
+        // 3. Close the full letter
+        closeLetter.addEventListener('click', () => {
+            fullLetter.classList.remove('active');
+        });
+
+        // 4. Background click to reset everything
+        document.body.addEventListener('click', () => {
+            if(!fullLetter.classList.contains('active')) {
+                envelope.classList.remove('open');
+                // Wait for flap to close before flipping back
+                setTimeout(() => {
+                    envelope.classList.remove('flipped');
+                }, 600);
+            }
+        });
+
+        function createSparkles() {
+    const container = document.getElementById('fullLetter');
+    const colors = ['#e5b3b3', '#ee5253', '#d4af37', '#ffffff']; // Rose gold, Deep rose, Gold, White
+    const shapes = ['❤️', '✨', '🌸', '⭐'];
+
+    for (let i = 0; i < 40; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        
+        // Randomize shape and color
+        p.innerHTML = shapes[Math.floor(Math.random() * shapes.length)];
+        p.style.color = colors[Math.floor(Math.random() * colors.length)];
+        p.style.fontSize = (Math.random() * 10 + 15) + 'px';
+        
+        // Start position (middle of the screen)
+        p.style.left = '50%';
+        p.style.top = '50%';
+
+        // Randomize travel distance
+        const dx = (Math.random() - 0.5) * 600 + 'px';
+        const dy = (Math.random() - 0.5) * 600 + 'px';
+        p.style.setProperty('--dx', dx);
+        p.style.setProperty('--dy', dy);
+
+        container.appendChild(p);
+
+        // Clean up memory after animation finishes
+        setTimeout(() => p.remove(), 2000);
+    }
+}
+    </script>
+</body>
+</html>
